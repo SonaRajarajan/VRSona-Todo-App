@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "humao.rest-client",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "christian-kohler.npm-intellisense",
+    "PKief.material-icon-theme"
+  ]
+}

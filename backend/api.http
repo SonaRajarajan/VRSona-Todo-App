@@ -1,0 +1,143 @@
+### ═══════════════════════════════════════════════════
+###   ToDoDo API  —  VS Code REST Client Test File
+###   Install:  humao.rest-client  extension
+### ═══════════════════════════════════════════════════
+
+@base = http://localhost:5000/api
+
+# ─── Health ──────────────────────────────────────────
+### Health check
+GET {{base}}/health
+
+
+# ─── Workspaces ──────────────────────────────────────
+### List all workspaces
+GET {{base}}/workspaces
+
+###
+
+### Get single workspace (includes todoCount)
+GET {{base}}/workspaces/ws-1
+
+###
+
+### Create workspace
+POST {{base}}/workspaces
+Content-Type: application/json
+
+{
+  "name": "Design Team",
+  "color": "#9B59B6",
+  "icon": "🎨"
+}
+
+###
+
+### Update workspace
+PUT {{base}}/workspaces/ws-1
+Content-Type: application/json
+
+{
+  "name": "My Team (Updated)",
+  "color": "#F39C12"
+}
+
+###
+
+### Delete workspace (also deletes its todos)
+DELETE {{base}}/workspaces/ws-3
+
+
+# ─── Todos ───────────────────────────────────────────
+### Get all todos
+GET {{base}}/todos
+
+###
+
+### Filter by workspace
+GET {{base}}/todos?workspaceId=ws-1
+
+###
+
+### Filter by status
+GET {{base}}/todos?status=DOING
+
+###
+
+### Filter by priority
+GET {{base}}/todos?priority=high
+
+###
+
+### Search todos
+GET {{base}}/todos?search=meeting
+
+###
+
+### Combined filters
+GET {{base}}/todos?workspaceId=ws-1&status=DOING&priority=high
+
+###
+
+### Stats — all workspaces
+GET {{base}}/todos/stats
+
+###
+
+### Stats — one workspace
+GET {{base}}/todos/stats?workspaceId=ws-1
+
+###
+
+### Get single todo
+GET {{base}}/todos/todo-1
+
+###
+
+### Create todo
+POST {{base}}/todos
+Content-Type: application/json
+
+{
+  "title": "Design new landing page",
+  "description": "Create wireframes for the redesigned homepage",
+  "workspaceId": "ws-1",
+  "boardName": "Design Board",
+  "status": "TODO",
+  "priority": "high",
+  "color": "#9B59B6",
+  "startTime": "09:00",
+  "endTime": "11:00",
+  "tags": ["design", "web"],
+  "assignee": "Sona",
+  "dueDate": "2025-12-31T00:00:00.000Z"
+}
+
+###
+
+### Full update todo
+PUT {{base}}/todos/todo-1
+Content-Type: application/json
+
+{
+  "title": "Meeting with HT Team (Rescheduled)",
+  "status": "TODO",
+  "priority": "high",
+  "color": "#FFBB00",
+  "workspaceId": "ws-1"
+}
+
+###
+
+### Status-only update (lightweight)
+PATCH {{base}}/todos/todo-1/status
+Content-Type: application/json
+
+{
+  "status": "DONE"
+}
+
+###
+
+### Delete todo
+DELETE {{base}}/todos/todo-4
