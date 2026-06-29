@@ -164,26 +164,12 @@ The application includes intelligent task assistance.
 
 ---
 
-# 🔍 Search & Filtering
-
-Quickly locate and organize tasks.
-
-* Real-time search
-* Filter by completion status
-* Filter by priority
-* Filter by category
-* Combined search and filter support
-
----
-
 # 📱 Responsive Design
 
 The application is fully responsive and optimized for:
 
 * Desktop
 * Laptop
-* Tablet
-* Mobile devices
 
 ---
 
