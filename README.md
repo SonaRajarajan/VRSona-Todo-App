@@ -1,6 +1,6 @@
 # README.md
 
-# VRSona Todo Application
+# VR Sona - Todo Application
 
 ## Overview
 
