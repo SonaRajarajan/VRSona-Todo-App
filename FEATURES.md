@@ -20,16 +20,20 @@
 <img width="803" height="364" alt="Todo Details Page" src="https://github.com/user-attachments/assets/0aecb4ca-5e61-449c-a869-8d7fb863ad05" />
 
 ---
-
-
-
-<img width="917" height="617" alt="image" src="https://github.com/user-attachments/assets/9b01fb1a-87cb-4743-bba9-a788987f0f3e" /> 
-<img width="1470" height="824" alt="image" src="https://github.com/user-attachments/assets/f7ce9e18-3659-4749-b05a-e025fbf1cf2a" />
-<img width="803" height="364" alt="image" src="https://github.com/user-attachments/assets/7b4303ac-db46-4475-ae1b-231cd90497da" />
+### Progress Analytics
 <img width="910" height="609" alt="image" src="https://github.com/user-attachments/assets/71abaab1-aec0-410c-8b43-819bc1da41b7" />
 
+---
+### AI-Powered Features
+<img width="911" height="606" alt="image" src="https://github.com/user-attachments/assets/d6c81a03-8483-414a-a4bf-1bdf660e27d9" />
 
-## 📋 Todo Management
+
+---
+### User Experience Enhancements
+<img width="910" height="603" alt="image" src="https://github.com/user-attachments/assets/1461f7ef-5ca2-4552-bfc1-623c9ed3a748" />
+
+---
+
 
 The application provides a complete task management system with the following capabilities:
 
