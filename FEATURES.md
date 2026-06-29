@@ -1,5 +1,7 @@
 # FEATURES.md
 
+<img width="917" height="617" alt="image" src="https://github.com/user-attachments/assets/9b01fb1a-87cb-4743-bba9-a788987f0f3e" /> 
+
 # Features and Functionalities
 
 ## 📋 Todo Management
