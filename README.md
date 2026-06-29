@@ -72,6 +72,8 @@ npm run dev
 ```
 <img width="1455" height="816" alt="image" src="https://github.com/user-attachments/assets/3963588c-c7ec-42bd-97d3-385b735dee9b" />
 <img width="1470" height="824" alt="image" src="https://github.com/user-attachments/assets/f7ce9e18-3659-4749-b05a-e025fbf1cf2a" />
+<img width="784" height="784" alt="image" src="https://github.com/user-attachments/assets/39dfceef-c0ab-4d09-9dc2-e3a6f7564932" />
+<img width="736" height="580" alt="image" src="https://github.com/user-attachments/assets/621a0250-03b7-49a3-a724-24af403a649c" />
 
 Runs on:
 
