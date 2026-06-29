@@ -49,6 +49,23 @@ API.md
 
 ## Installation
 
+Before running the project, ensure you have the following installed:
+
+- Node.js (v18 or later)
+- npm (comes with Node.js)
+- Git (optional, for cloning the repository)
+
+---
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/SonaRajarajan/VRSona-Todo-App.git
+cd VRSona-Todo-App
+```
+
+---
+
 ### Backend
 
 ```bash
