@@ -70,11 +70,12 @@ cd frontend
 npm install
 npm run dev
 ```
-<img width="917" height="617" alt="image" src="https://github.com/user-attachments/assets/9b01fb1a-87cb-4743-bba9-a788987f0f3e" />
+
 <img width="1455" height="816" alt="image" src="https://github.com/user-attachments/assets/3963588c-c7ec-42bd-97d3-385b735dee9b" />
 <img width="1470" height="824" alt="image" src="https://github.com/user-attachments/assets/f7ce9e18-3659-4749-b05a-e025fbf1cf2a" />
 <img width="784" height="784" alt="image" src="https://github.com/user-attachments/assets/39dfceef-c0ab-4d09-9dc2-e3a6f7564932" />
 <img width="789" height="604" alt="image" src="https://github.com/user-attachments/assets/82ea1d63-2ebe-4b76-9b43-aa3327f110f3" />
+<img width="917" height="617" alt="image" src="https://github.com/user-attachments/assets/9b01fb1a-87cb-4743-bba9-a788987f0f3e" />
 
 
 Runs on:
