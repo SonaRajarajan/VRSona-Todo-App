@@ -99,13 +99,13 @@ function Sidebar({ data, updateWorkspaces, updateLists }) {
   return (
     <div style={{
       width: sidebarOpen ? '280px' : '80px',
-      background: '#2c7cecff',
+      background: '#1F2937',
       color: '#FFFFFF',
       padding: '1.5rem 1rem',
       transition: 'width 0.3s',
       display: 'flex',
       flexDirection: 'column',
-      borderRight: '1px solid #144faeff',
+      borderRight: '1px solid #374151',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
@@ -115,7 +115,7 @@ function Sidebar({ data, updateWorkspaces, updateLists }) {
           style={{
             background: 'none',
             border: 'none',
-            color: '#024fd2ff',
+            color: '#9CA3AF',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -292,7 +292,7 @@ function StatCard({ icon, label, value, color }) {
       padding: '1.5rem',
       borderRadius: '12px',
       border: '1px solid #E5E7EB',
-      boxShadow: '0 2px 4px rgba(165, 15, 15, 0.05)',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
     }}>
       <div style={{ fontSize: '24px', marginBottom: '8px' }}>{icon}</div>
       <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 8px 0', textTransform: 'uppercase', fontWeight: '600' }}>{label}</p>
@@ -307,7 +307,7 @@ function Section({ title, icon, children }) {
       background: '#FFFFFF',
       borderRadius: '12px',
       border: '1px solid #E5E7EB',
-      boxShadow: '0 2px 4px rgba(194, 24, 24, 0.05)',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
       overflow: 'hidden',
     }}>
       <div style={{

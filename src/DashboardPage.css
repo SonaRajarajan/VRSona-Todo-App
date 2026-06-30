@@ -239,6 +239,115 @@
   margin: 0;
   font-size: 14px;
 }
+.analytics-section{
+margin-bottom:35px;
+}
+
+.analytics-section h2{
+margin-bottom:20px;
+font-size:28px;
+font-weight:700;
+}
+
+.analytics-grid{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+
+gap:18px;
+
+margin-bottom:30px;
+
+}
+
+.analytics-card{
+
+background:white;
+
+border-radius:18px;
+
+padding:22px;
+
+box-shadow:0 8px 18px rgba(0,0,0,.08);
+
+transition:.3s;
+
+}
+
+.analytics-card:hover{
+
+transform:translateY(-5px);
+
+}
+
+.analytics-card h3{
+
+font-size:34px;
+
+font-weight:bold;
+
+color:#4F46E5;
+
+}
+
+.analytics-card p{
+
+margin-top:10px;
+
+color:#666;
+
+font-size:15px;
+
+}
+
+.progress-container{
+
+background:white;
+
+padding:25px;
+
+border-radius:18px;
+
+box-shadow:0 8px 18px rgba(0,0,0,.08);
+
+}
+
+.progress-text{
+
+display:flex;
+
+justify-content:space-between;
+
+margin-bottom:12px;
+
+font-weight:600;
+
+}
+
+.progress-bar{
+
+height:16px;
+
+background:#e5e7eb;
+
+border-radius:20px;
+
+overflow:hidden;
+
+}
+
+.progress-fill{
+
+height:100%;
+
+background:linear-gradient(90deg,#6366f1,#06b6d4);
+
+border-radius:20px;
+
+transition:width .5s;
+
+}
 
 /* Responsive */
 @media (max-width: 768px) {

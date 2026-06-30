@@ -6,6 +6,10 @@ function TodoForm({ onAddTodo }) {
   const [selectedColor, setSelectedColor] = useState('#DBEAFE');
   const [showForm, setShowForm] = useState(false);
 
+  const [dueDate, setDueDate] = useState('');
+  const [dueTime, setDueTime] = useState('');
+  const [description, setDescription] = useState('');
+
   const colors = [
     { code: '#DBEAFE', name: 'Blue' },
     { code: '#FED7AA', name: 'Orange' },
@@ -19,23 +23,30 @@ function TodoForm({ onAddTodo }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (title.trim()) {
-      onAddTodo({
-        title: title.trim(),
-        color: selectedColor,
-        completed: false,
-        priority: 'medium',
-        subtasks: [],
-        dueDate: '',
-        time: '',
-        description: ''
-      });
-      setTitle('');
-      setSelectedColor('#DBEAFE');
-      setShowForm(false);
-    } else {
+
+    if (!title.trim()) {
       alert('Please enter a task name');
+      return;
     }
+
+    onAddTodo({
+      title: title.trim(),
+      color: selectedColor,
+      completed: false,
+      priority: 'medium',
+      subtasks: [],
+      dueDate,
+      time: dueTime,
+      description
+    });
+
+    // Reset form
+    setTitle('');
+    setSelectedColor('#DBEAFE');
+    setDueDate('');
+    setDueTime('');
+    setDescription('');
+    setShowForm(false);
   };
 
   return (
@@ -52,6 +63,7 @@ function TodoForm({ onAddTodo }) {
         <form className="todo-form-pro" onSubmit={handleSubmit}>
           <div className="form-header">
             <h3>New Task</h3>
+
             <button
               type="button"
               className="close-btn"
@@ -61,6 +73,7 @@ function TodoForm({ onAddTodo }) {
             </button>
           </div>
 
+          {/* Task Title */}
           <div className="form-group">
             <input
               type="text"
@@ -72,14 +85,55 @@ function TodoForm({ onAddTodo }) {
             />
           </div>
 
+          {/* Description */}
+          <div className="form-group">
+            <label>Task Description</label>
+
+            <textarea
+              className="todo-textarea"
+              rows="3"
+              placeholder="Add a description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          {/* Due Date */}
+          <div className="form-group">
+            <label>Due Date</label>
+
+            <input
+              type="date"
+              className="todo-input-pro"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+
+          {/* Due Time */}
+          <div className="form-group">
+            <label>Due Time</label>
+
+            <input
+              type="time"
+              className="todo-input-pro"
+              value={dueTime}
+              onChange={(e) => setDueTime(e.target.value)}
+            />
+          </div>
+
+          {/* Color Picker */}
           <div className="form-section">
             <label className="section-label">Color</label>
+
             <div className="color-picker-pro">
-              {colors.map(color => (
+              {colors.map((color) => (
                 <button
                   key={color.code}
                   type="button"
-                  className={`color-dot-pro ${selectedColor === color.code ? 'selected' : ''}`}
+                  className={`color-dot-pro ${
+                    selectedColor === color.code ? 'selected' : ''
+                  }`}
                   style={{ backgroundColor: color.code }}
                   onClick={() => setSelectedColor(color.code)}
                   title={color.name}
@@ -88,6 +142,7 @@ function TodoForm({ onAddTodo }) {
             </div>
           </div>
 
+          {/* Buttons */}
           <div className="form-actions">
             <button
               type="button"
@@ -96,6 +151,7 @@ function TodoForm({ onAddTodo }) {
             >
               Cancel
             </button>
+
             <button type="submit" className="submit-btn">
               Add Task
             </button>

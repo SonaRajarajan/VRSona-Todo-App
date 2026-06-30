@@ -1,33 +1,281 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
-import {
-  Plus, Trash2, CheckCircle2, Circle, Edit2, Clock,
-  FileText, History, ArrowLeft, Calendar, Flag, AlertTriangle, Bell,
-} from 'lucide-react';
-import LoginPage from './LoginPage';
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
+import { ChevronRight, Plus, Trash2, CheckCircle2, Circle, Edit2, Tag, Clock, FileText, History, ArrowLeft, Calendar, Flag, LogOut } from 'lucide-react';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
+// Color palette
 const colors = [
-  { name: 'blue',   bg: '#3B82F6', light: '#E0E7FF', text: '#1E40AF' },
-  { name: 'yellow', bg: '#FBBF24', light: '#FEF3C7', text: '#92400E' },
-  { name: 'orange', bg: '#F97316', light: '#FFEDD5', text: '#9A3412' },
-  { name: 'green',  bg: '#10B981', light: '#ECFDF5', text: '#065F46' },
-  { name: 'purple', bg: '#8B5CF6', light: '#F3E8FF', text: '#5B21B6' },
-  { name: 'pink',   bg: '#EC4899', light: '#FCE7F3', text: '#831843' },
-  { name: 'red',    bg: '#EF4444', light: '#FEE2E2', text: '#7F1D1D' },
-  { name: 'teal',   bg: '#14B8A6', light: '#F0FDFA', text: '#134E4A' },
+  { name: 'blue', bg: '#3B82F6', light: '#E0E7FF', text: '#1E40AF', icon: '●' },
+  { name: 'yellow', bg: '#FBBF24', light: '#FEF3C7', text: '#92400E', icon: '●' },
+  { name: 'orange', bg: '#F97316', light: '#FFEDD5', text: '#9A3412', icon: '●' },
+  { name: 'green', bg: '#10B981', light: '#ECFDF5', text: '#065F46', icon: '●' },
+  { name: 'purple', bg: '#8B5CF6', light: '#F3E8FF', text: '#5B21B6', icon: '●' },
+  { name: 'pink', bg: '#EC4899', light: '#FCE7F3', text: '#831843', icon: '●' },
+  { name: 'red', bg: '#EF4444', light: '#FEE2E2', text: '#7F1D1D', icon: '●' },
+  { name: 'teal', bg: '#14B8A6', light: '#F0FDFA', text: '#134E4A', icon: '●' },
 ];
 
 const priorities = [
-  { value: 'low',    label: 'Low',    color: '#6B7280' },
-  { value: 'medium', label: 'Medium', color: '#F59E0B' },
-  { value: 'high',   label: 'High',   color: '#EF4444' },
+  { value: 'low', label: 'Low', icon: '○', color: '#6B7280' },
+  { value: 'medium', label: 'Medium', icon: '◐', color: '#F59E0B' },
+  { value: 'high', label: 'High', icon: '●', color: '#EF4444' },
 ];
 
-const getColor = (name) => colors.find(c => c.name === name) || colors[0];
+// Main App with Router
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return !!localStorage.getItem('userData');
+  });
+  const [userData, setUserData] = useState(() => {
+    const saved = localStorage.getItem('userData');
+    return saved ? JSON.parse(saved) : null;
+  });
 
-// ─── Default Data ─────────────────────────────────────────────────────────────
+  const [todos, setTodos] = useState(() => {
+    const saved = localStorage.getItem('todos');
+    return saved ? JSON.parse(saved) : getDefaultTodos();
+  });
+
+  useEffect(() => {
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }, [todos]);
+
+  const handleLogin = (name, age) => {
+    const userData = { name, age };
+    localStorage.setItem('userData', JSON.stringify(userData));
+    setUserData(userData);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    setUserData(null);
+    setIsLoggedIn(false);
+  };
+
+  const updateTodo = (id, updates) => {
+    setTodos(todos.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
+  const addActivity = (todoId, action, details = '') => {
+    const todo = todos.find(t => t.id === todoId);
+    if (todo) {
+      const activity = {
+        id: Date.now(),
+        action,
+        details,
+        timestamp: new Date().toISOString(),
+      };
+      updateTodo(todoId, {
+        activity: [...(todo.activity || []), activity]
+      });
+    }
+  };
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Login Route */}
+        <Route 
+          path="/" 
+          element={
+            isLoggedIn ? (
+              <TodoListPage 
+                todos={todos} 
+                setTodos={setTodos} 
+                updateTodo={updateTodo} 
+                addActivity={addActivity}
+                userData={userData}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <LoginPage onLogin={handleLogin} />
+            )
+          } 
+        />
+
+        {/* Protected Todo Routes */}
+        <Route
+          path="/todo/:id"
+          element={
+            isLoggedIn ? (
+              <TodoDetailPage 
+                todos={todos} 
+                updateTodo={updateTodo} 
+                addActivity={addActivity}
+                userData={userData}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <LoginPage onLogin={handleLogin} />
+            )
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+// LOGIN PAGE
+function LoginPage({ onLogin }) {
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
+
+    if (!age) {
+      newErrors.age = 'Age is required';
+    } else if (isNaN(age) || age < 13) {
+      newErrors.age = 'Age must be at least 13';
+    } else if (age > 120) {
+      newErrors.age = 'Please enter a valid age';
+    }
+
+    return newErrors;
+  };
+
+  const handleGetStarted = (e) => {
+    e.preventDefault();
+    const newErrors = validateForm();
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      alert(Object.values(newErrors).join('\n'));
+    } else {
+      onLogin(name, age);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: 'inherit' }}>
+      <div style={{ width: '100%', maxWidth: '1000px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
+          {/* Left Side */}
+          <div style={{ color: 'white', padding: '40px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '20px', fontSize: '40px', marginBottom: '20px', backdropFilter: 'blur(10px)', border: '2px solid rgba(255, 255, 255, 0.3)' }}>
+                ✓
+              </div>
+              <h1 style={{ fontSize: '48px', fontWeight: '800', margin: '20px 0 10px', letterSpacing: '-1px' }}>
+                <span style={{ color: '#4F46E5' }}>To</span>
+                <span style={{ color: '#F59E0B' }}>Do</span>
+                <span style={{ color: '#10B981' }}>Do</span>
+              </h1>
+              <p style={{ fontSize: '16px', opacity: 0.9, margin: 0 }}>Your Personal Task Manager</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {[
+                { icon: '📋', title: 'Organize Tasks', desc: 'Keep all your tasks in one place' },
+                { icon: '🎯', title: 'Set Priorities', desc: 'Focus on what matters most' },
+                { icon: '📊', title: 'Track Progress', desc: 'Monitor your productivity' }
+              ].map((feature, i) => (
+                <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', padding: '16px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.2)', transition: 'all 0.3s ease', cursor: 'pointer' }}>
+                  <div style={{ fontSize: '28px', flexShrink: 0 }}>{feature.icon}</div>
+                  <div>
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600' }}>{feature.title}</h3>
+                    <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>{feature.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Side - Form */}
+          <div style={{ background: 'white', padding: '50px 40px', borderRadius: '20px', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: '700', margin: '0 0 8px 0', color: '#1F2937' }}>Welcome to ToDoDo</h2>
+            <p style={{ color: '#6B7280', margin: '0 0 30px 0', fontSize: '14px' }}>Let's get you started</p>
+
+            <form onSubmit={handleGetStarted} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontWeight: '600', color: '#1F2937', fontSize: '14px' }}>Full Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (errors.name) setErrors({ ...errors, name: '' });
+                  }}
+                  style={{
+                    padding: '14px 16px',
+                    border: errors.name ? '2px solid #EF4444' : '2px solid #E5E7EB',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.2s ease',
+                    background: errors.name ? 'rgba(239, 68, 68, 0.05)' : '#F9FAFB',
+                    outline: 'none',
+                  }}
+                />
+                {errors.name && <span style={{ color: '#EF4444', fontSize: '13px', fontWeight: '500' }}>{errors.name}</span>}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontWeight: '600', color: '#1F2937', fontSize: '14px' }}>Age</label>
+                <input
+                  type="number"
+                  placeholder="Enter your age"
+                  value={age}
+                  onChange={(e) => {
+                    setAge(e.target.value);
+                    if (errors.age) setErrors({ ...errors, age: '' });
+                  }}
+                  min="13"
+                  max="120"
+                  style={{
+                    padding: '14px 16px',
+                    border: errors.age ? '2px solid #EF4444' : '2px solid #E5E7EB',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.2s ease',
+                    background: errors.age ? 'rgba(239, 68, 68, 0.05)' : '#F9FAFB',
+                    outline: 'none',
+                  }}
+                />
+                {errors.age && <span style={{ color: '#EF4444', fontSize: '13px', fontWeight: '500' }}>{errors.age}</span>}
+              </div>
+
+              <button
+                type="submit"
+                style={{
+                  padding: '14px 24px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginTop: '10px',
+                }}
+              >
+                Get Started →
+              </button>
+            </form>
+
+            <p style={{ textAlign: 'center', color: '#9CA3AF', fontSize: '13px', marginTop: '10px' }}>
+              You're all set to manage your tasks like a pro!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function getDefaultTodos() {
   return [
@@ -108,513 +356,388 @@ function getDefaultTodos() {
   ];
 }
 
-// ─── Root App ─────────────────────────────────────────────────────────────────
+// TODO LIST PAGE (Updated with logout)
+function TodoListPage({ todos, setTodos, updateTodo, addActivity, userData, onLogout }) {
+  const [newTodo, setNewTodo] = useState('');
+  const [selectedColor, setSelectedColor] = useState('blue');
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState('');
+  const [filter, setFilter] = useState('all');
 
-export default function App() {
-  const [todos, setTodos] = useState(() => {
-    try {
-      const saved = localStorage.getItem('todos');
-      return saved ? JSON.parse(saved) : getDefaultTodos();
-    } catch {
-      return getDefaultTodos();
+  const addTodo = () => {
+    if (newTodo.trim()) {
+      const todo = {
+        id: Date.now(),
+        text: newTodo,
+        description: '',
+        completed: false,
+        color: selectedColor,
+        dueDate: new Date().toISOString().split('T')[0],
+        dueTime: '09:00',
+        priority: 'medium',
+        subtasks: [],
+        notes: '',
+        timeSpent: 0,
+        activity: [
+          { id: 1, action: 'created', details: '', timestamp: new Date().toISOString() }
+        ],
+      };
+      setTodos([...todos, todo]);
+      addActivity(todo.id, 'created', '');
+      setNewTodo('');
+      setSelectedColor('blue');
     }
-  });
-
-  const [dismissedAlerts, setDismissedAlerts] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('dismissedAlerts');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem('todos', JSON.stringify(todos));
-  }, [todos]);
-
-  useEffect(() => {
-    sessionStorage.setItem('dismissedAlerts', JSON.stringify(dismissedAlerts));
-  }, [dismissedAlerts]);
-
-  const dismissAlert = (todoId) =>
-    setDismissedAlerts(prev => [...prev, todoId]);
-
-  const updateTodo = (id, updates) => {
-    setTodos(prev => prev.map(t => (t.id === id ? { ...t, ...updates } : t)));
-    if (updates.completed === false)
-      setDismissedAlerts(prev => prev.filter(d => d !== id));
-  };
-
-  const addActivity = (todoId, action, details = '') => {
-    setTodos(prev =>
-      prev.map(t =>
-        t.id !== todoId
-          ? t
-          : {
-              ...t,
-              activity: [
-                ...(t.activity || []),
-                { id: Date.now(), action, details, timestamp: new Date().toISOString() },
-              ],
-            }
-      )
-    );
   };
 
   const toggleComplete = (id) => {
-    setTodos(prev =>
-      prev.map(t => {
-        if (t.id !== id) return t;
-        const nowCompleted = !t.completed;
-        if (nowCompleted) setDismissedAlerts(d => [...d, id]);
-        else setDismissedAlerts(d => d.filter(x => x !== id));
-        return {
-          ...t,
-          completed: nowCompleted,
-          activity: [
-            ...(t.activity || []),
-            {
-              id: Date.now(),
-              action: nowCompleted ? 'completed' : 'reopened',
-              details: '',
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        };
-      })
-    );
+    const todo = todos.find(t => t.id === id);
+    updateTodo(id, { completed: !todo.completed });
+    addActivity(id, todo.completed ? 'reopened' : 'completed', '');
   };
 
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route
-          path="/todos"
-          element={
-            <TodoListPage
-              todos={todos}
-              setTodos={setTodos}
-              updateTodo={updateTodo}
-              addActivity={addActivity}
-              toggleComplete={toggleComplete}
-              dismissedAlerts={dismissedAlerts}
-              dismissAlert={dismissAlert}
-            />
-          }
-        />
-        <Route
-          path="/todo/:id"
-          element={
-            <TodoDetailPage
-              todos={todos}
-              updateTodo={updateTodo}
-              addActivity={addActivity}
-              toggleComplete={toggleComplete}
-            />
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-  );
-}
-
-// ─── Todo List Page ───────────────────────────────────────────────────────────
-
-function TodoListPage({
-  todos, setTodos, updateTodo, addActivity,
-  toggleComplete, dismissedAlerts, dismissAlert,
-}) {
-  const navigate = useNavigate();
-  const [newTodo, setNewTodo]           = useState('');
-  const [selectedColor, setSelectedColor] = useState('blue');
-  const [filter, setFilter]             = useState('all');
-
-  const now = new Date();
-
-  const overdueTodos = todos.filter(t => {
-    if (t.completed || !t.dueDate || dismissedAlerts.includes(t.id)) return false;
-    return new Date(`${t.dueDate}T${t.dueTime || '23:59'}`) < now;
-  });
-
-  const dueSoonTodos = todos.filter(t => {
-    if (t.completed || !t.dueDate || dismissedAlerts.includes(t.id)) return false;
-    const diff = (new Date(`${t.dueDate}T${t.dueTime || '23:59'}`) - now) / (1000 * 60 * 60);
-    return diff > 0 && diff <= 24;
-  });
-
-  const addTodo = () => {
-    if (!newTodo.trim()) return;
-    const todo = {
-      id: Date.now(),
-      text: newTodo.trim(),
-      description: '',
-      completed: false,
-      color: selectedColor,
-      dueDate: new Date().toISOString().split('T')[0],
-      dueTime: '09:00',
-      priority: 'medium',
-      subtasks: [],
-      notes: '',
-      timeSpent: 0,
-      activity: [{ id: Date.now(), action: 'created', details: '', timestamp: new Date().toISOString() }],
-    };
-    setTodos(prev => [...prev, todo]);
-    setNewTodo('');
-    setSelectedColor('blue');
+  const deleteTodo = (id) => {
+    setTodos(todos.filter(t => t.id !== id));
   };
 
-  const deleteTodo = (id) => setTodos(prev => prev.filter(t => t.id !== id));
-
-  const filteredTodos =
-    filter === 'active'    ? todos.filter(t => !t.completed) :
-    filter === 'completed' ? todos.filter(t =>  t.completed) :
-    todos;
+  const filteredTodos = filter === 'all' ? todos : filter === 'active' ? todos.filter(t => !t.completed) : todos.filter(t => t.completed);
+  const getColorObj = (colorName) => colors.find(c => c.name === colorName) || colors[0];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#4F46E5', padding: '2rem 1rem' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8f7ff 0%, #f0f9ff 100%)', padding: '2rem 1rem' }}>
+      {/* Header with User Profile */}
+      <div style={{ maxWidth: '700px', margin: '0 auto', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#667eea', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '16px' }}>
+            {userData?.name?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          <div>
+            <p style={{ margin: 0, fontWeight: '600', color: '#1F2937' }}>{userData?.name || 'User'}</p>
+            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6B7280' }}>Task Manager</p>
+          </div>
+        </div>
+        <button
+          onClick={onLogout}
+          style={{
+            padding: '8px 16px',
+            background: '#FEE2E2',
+            color: '#DC2626',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <LogOut size={16} />
+          Logout
+        </button>
+      </div>
 
-        {/* ── Header ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: '700', margin: 0, letterSpacing: '-0.5px' }}>
-            <span style={{ color: '#3B82F6' }}>To</span>
-            <span style={{ color: '#F97316' }}>Do</span>
-            <span style={{ color: '#10B981' }}>Do</span>
+      {/* Title */}
+      <div style={{ maxWidth: '700px', margin: '0 auto', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: '700', margin: 0, color: '#1F2937', letterSpacing: '-0.5px' }}>
+            <span style={{ color: '#3B82F6' }}>To</span><span style={{ color: '#F97316' }}>Do</span><span style={{ color: '#10B981' }}>Do</span>
           </h1>
-          {overdueTodos.length > 0 && (
-            <div style={{
-              background: '#EF4444', color: '#fff', padding: '6px 16px',
-              borderRadius: '9999px', fontWeight: '700',
-              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px',
-            }}>
-              <AlertTriangle size={16} /> {overdueTodos.length} Overdue
-            </div>
-          )}
+          <div style={{ fontSize: '24px' }}>✓</div>
         </div>
 
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+        {/* Filter Tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          {['all', 'active', 'completed'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '8px',
+                background: filter === f ? '#3B82F6' : '#E5E7EB',
+                color: filter === f ? '#FFFFFF' : '#4B5563',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontSize: '14px',
+                textTransform: 'capitalize',
+                transition: 'all 0.2s',
+              }}
+            >
+              {f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Completed'}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* ── LEFT SIDEBAR ── */}
-          <div style={{
-            width: '300px', flexShrink: 0, background: '#fff', borderRadius: '16px',
-            padding: '20px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-            position: 'sticky', top: '20px',
-          }}>
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={20} color="#EF4444" /> Priority Tasks
-            </h3>
-
-            {/* Overdue */}
-            {overdueTodos.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontWeight: '700', color: '#991B1B', marginBottom: '12px', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Overdue ({overdueTodos.length})
-                </div>
-                {overdueTodos.map(todo => (
-                  <div
-                    key={todo.id}
-                    style={{
-                      padding: '12px 14px', background: '#FEF2F2',
-                      borderLeft: '4px solid #EF4444', borderRadius: '8px',
-                      marginBottom: '8px', cursor: 'pointer',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                    }}
-                  >
-                    <div onClick={() => navigate(`/todo/${todo.id}`)} style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#1F2937', marginBottom: '2px' }}>{todo.text}</div>
-                      <div style={{ fontSize: '12px', color: '#B91C1C' }}>
-                        Due {new Date(todo.dueDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => dismissAlert(todo.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '0 0 0 8px', fontSize: '16px', lineHeight: 1 }}
-                      title="Dismiss"
-                    >×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Due Soon */}
-            {dueSoonTodos.length > 0 && (
-              <div style={{ marginBottom: '8px' }}>
-                <div style={{ fontWeight: '700', color: '#92400E', marginBottom: '12px', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Due Soon ({dueSoonTodos.length})
-                </div>
-                {dueSoonTodos.map(todo => (
-                  <div
-                    key={todo.id}
-                    style={{
-                      padding: '12px 14px', background: '#FFFBEB',
-                      borderLeft: '4px solid #F59E0B', borderRadius: '8px',
-                      marginBottom: '8px', cursor: 'pointer',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                    }}
-                  >
-                    <div onClick={() => navigate(`/todo/${todo.id}`)} style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#1F2937', marginBottom: '2px' }}>{todo.text}</div>
-                      <div style={{ fontSize: '12px', color: '#B45309' }}>
-                        Due {new Date(todo.dueDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => dismissAlert(todo.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: '0 0 0 8px', fontSize: '16px', lineHeight: 1 }}
-                      title="Dismiss"
-                    >×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* All clear */}
-            {overdueTodos.length === 0 && dueSoonTodos.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#10B981' }}>
-                <CheckCircle2 size={48} />
-                <p style={{ marginTop: '12px', color: '#374151', fontSize: '14px' }}>All tasks are on track!</p>
-              </div>
-            )}
-
-            {/* Stats */}
-            <div style={{ marginTop: '24px', borderTop: '1px solid #F3F4F6', paddingTop: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>
-                <span>Total tasks</span><span style={{ fontWeight: '700', color: '#1F2937' }}>{todos.length}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>
-                <span>Completed</span><span style={{ fontWeight: '700', color: '#10B981' }}>{todos.filter(t => t.completed).length}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280' }}>
-                <span>Active</span><span style={{ fontWeight: '700', color: '#3B82F6' }}>{todos.filter(t => !t.completed).length}</span>
-              </div>
-            </div>
+      {/* Add New Todo Section */}
+      <div style={{ maxWidth: '700px', margin: '0 auto', marginBottom: '2rem' }}>
+        <div style={{
+          background: '#FFFFFF',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07)',
+          border: '1px solid #E5E7EB',
+        }}>
+          <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+            Add a new task
+          </label>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+            <input
+              type="text"
+              value={newTodo}
+              onChange={(e) => setNewTodo(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+              placeholder="What needs to be done?"
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontFamily: 'inherit',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+            />
+            <button
+              onClick={addTodo}
+              style={{
+                padding: '12px 20px',
+                background: '#3B82F6',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '14px',
+                transition: 'background 0.2s',
+              }}
+            >
+              <Plus size={18} /> Add
+            </button>
           </div>
 
-          {/* ── MAIN CONTENT ── */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Color Selector */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {colors.map(color => (
+              <button
+                key={color.name}
+                onClick={() => setSelectedColor(color.name)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: color.bg,
+                  border: selectedColor === color.name ? '3px solid #1F2937' : '2px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
 
-            {/* Filter Tabs */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem' }}>
-              {['all', 'active', 'completed'].map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  style={{
-                    padding: '8px 20px', border: 'none', borderRadius: '8px',
-                    background: filter === f ? '#3B82F6' : 'rgba(255,255,255,0.2)',
-                    color: filter === f ? '#fff' : '#E0E7FF',
-                    fontWeight: '600', cursor: 'pointer', fontSize: '14px',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-            </div>
+      {/* Todo List */}
+      <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+        {filteredTodos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#9CA3AF' }}>
+            <p style={{ fontSize: '16px', marginBottom: '8px' }}>
+              {filter === 'completed' ? 'No completed tasks yet' : filter === 'active' ? 'All caught up! 🎉' : 'No tasks yet'}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filteredTodos.map(todo => {
+              const colorObj = getColorObj(todo.color);
+              const completedSubtasks = (todo.subtasks || []).filter(s => s.completed).length;
+              const totalSubtasks = (todo.subtasks || []).length;
 
-            {/* Add Todo */}
-            <div style={{
-              background: '#fff', borderRadius: '16px', padding: '1.5rem',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.07)', marginBottom: '1.5rem',
-              border: '1px solid #E5E7EB',
-            }}>
-              <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                Add a new task
-              </label>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  type="text"
-                  value={newTodo}
-                  onChange={e => setNewTodo(e.target.value)}
-                  onKeyPress={e => e.key === 'Enter' && addTodo()}
-                  placeholder="What needs to be done?"
-                  style={{
-                    flex: 1, padding: '12px 16px', border: '1px solid #E5E7EB',
-                    borderRadius: '8px', fontSize: '14px', outline: 'none', fontFamily: 'inherit',
-                  }}
-                />
-                <button
-                  onClick={addTodo}
-                  style={{
-                    padding: '12px 20px', background: '#3B82F6', color: '#fff',
-                    border: 'none', borderRadius: '8px', fontWeight: '600',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                    fontSize: '14px',
-                  }}
+              return (
+                <Link
+                  key={todo.id}
+                  to={`/todo/${todo.id}`}
+                  style={{ textDecoration: 'none' }}
                 >
-                  <Plus size={18} /> Add
-                </button>
-              </div>
-              {/* Color Picker */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {colors.map(c => (
-                  <button
-                    key={c.name}
-                    onClick={() => setSelectedColor(c.name)}
-                    title={c.name}
+                  <div
                     style={{
-                      width: '28px', height: '28px', borderRadius: '50%', background: c.bg,
-                      border: selectedColor === c.name ? '3px solid #1F2937' : '2px solid transparent',
-                      cursor: 'pointer', transition: 'all 0.2s',
+                      background: colorObj.light,
+                      borderLeft: `6px solid ${colorObj.bg}`,
+                      borderRadius: '12px',
+                      padding: '16px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                      border: `1px solid ${colorObj.bg}33`,
                     }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Todo List */}
-            {filteredTodos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#E0E7FF' }}>
-                <p style={{ fontSize: '16px' }}>
-                  {filter === 'completed' ? 'No completed tasks yet' :
-                   filter === 'active'    ? 'All caught up! 🎉' :
-                   'No tasks yet. Add one above!'}
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {filteredTodos.map(todo => {
-                  const col          = getColor(todo.color);
-                  const completedSub = (todo.subtasks || []).filter(s => s.completed).length;
-                  const totalSub     = (todo.subtasks || []).length;
-
-                  return (
-                    <div
-                      key={todo.id}
-                      onClick={() => navigate(`/todo/${todo.id}`)}
+                  >
+                    {/* Checkbox */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleComplete(todo.id);
+                      }}
                       style={{
-                        background: col.light,
-                        borderLeft: `6px solid ${col.bg}`,
-                        border: `1px solid ${col.bg}33`,
-                        borderRadius: '12px',
-                        padding: '16px',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '12px',
+                        background: 'none',
+                        border: 'none',
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        color: colorObj.bg,
+                        flexShrink: 0,
+                        marginTop: '2px',
                       }}
                     >
-                      {/* Checkbox */}
-                      <button
-                        onClick={e => { e.stopPropagation(); toggleComplete(todo.id); }}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', padding: '2px',
-                          color: col.bg, flexShrink: 0, marginTop: '1px',
-                          outline: 'none', borderRadius: '50%',
-                        }}
-                        title={todo.completed ? 'Mark incomplete' : 'Mark complete'}
-                      >
-                        {todo.completed
-                          ? <CheckCircle2 size={24} fill={col.bg} color="#fff" />
-                          : <Circle size={24} />}
-                      </button>
+                      {todo.completed ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+                    </button>
 
-                      {/* Content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                          margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: col.text,
-                          textDecoration: todo.completed ? 'line-through' : 'none',
-                          opacity: todo.completed ? 0.55 : 1,
-                        }}>
-                          {todo.text}
-                        </p>
-                        {todo.description ? (
-                          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: col.text, opacity: 0.7 }}>
-                            {todo.description}
-                          </p>
-                        ) : null}
-                        <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: col.bg, opacity: 0.85, flexWrap: 'wrap', alignItems: 'center' }}>
-                          {todo.dueDate && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Calendar size={12} />
-                              {new Date(todo.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
-                          )}
-                          {todo.priority && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Flag size={12} />
-                              {todo.priority.charAt(0).toUpperCase() + todo.priority.slice(1)}
-                            </span>
-                          )}
-                          {totalSub > 0 && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <CheckCircle2 size={12} /> {completedSub}/{totalSub}
-                            </span>
-                          )}
-                        </div>
+                    {/* Todo Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: colorObj.text,
+                        textDecoration: todo.completed ? 'line-through' : 'none',
+                        opacity: todo.completed ? 0.6 : 1,
+                        marginBottom: '8px',
+                      }}>
+                        {todo.text}
+                      </p>
+
+                      {/* Metadata */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '16px',
+                        fontSize: '12px',
+                        color: colorObj.bg,
+                        opacity: 0.8,
+                        flexWrap: 'wrap',
+                      }}>
+                        {todo.dueDate && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Calendar size={14} />
+                            {new Date(todo.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
+                        {todo.priority && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Flag size={14} />
+                            {todo.priority === 'high' ? 'High' : todo.priority === 'medium' ? 'Medium' : 'Low'}
+                          </span>
+                        )}
+                        {totalSubtasks > 0 && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CheckCircle2 size={14} />
+                            {completedSubtasks}/{totalSubtasks}
+                          </span>
+                        )}
                       </div>
+                    </div>
 
-                      {/* Delete */}
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexShrink: 0 }}>
                       <button
-                        onClick={e => { e.stopPropagation(); deleteTodo(todo.id); }}
-                        style={{
-                          padding: '8px 10px', background: '#FEE2E2', color: '#DC2626',
-                          border: '1px solid #FECACA', borderRadius: '6px',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0,
+                        onClick={(e) => {
+                          e.preventDefault();
+                          deleteTodo(todo.id);
                         }}
-                        title="Delete task"
+                        style={{
+                          padding: '8px 12px',
+                          background: '#FEE2E2',
+                          color: '#DC2626',
+                          border: '1px solid #FECACA',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Footer count */}
-            <div style={{ marginTop: '2rem', textAlign: 'center', color: '#C7D2FE', fontSize: '14px' }}>
-              {todos.filter(t => t.completed).length} of {todos.length} tasks completed
-            </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Stats Footer */}
+      <div style={{
+        maxWidth: '700px',
+        margin: '3rem auto 0',
+        padding: '1.5rem',
+        textAlign: 'center',
+        color: '#9CA3AF',
+        fontSize: '14px',
+      }}>
+        <p style={{ margin: 0 }}>
+          {todos.filter(t => t.completed).length} of {todos.length} tasks completed
+        </p>
       </div>
     </div>
   );
 }
 
-// ─── Todo Detail Page ─────────────────────────────────────────────────────────
-
-function TodoDetailPage({ todos, updateTodo, addActivity, toggleComplete }) {
+// TODO DETAIL PAGE (Same as before)
+function TodoDetailPage({ todos, updateTodo, addActivity, userData, onLogout }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const todo = todos.find(t => t.id === parseInt(id));
 
-  const [editMode,          setEditMode]          = useState(false);
-  const [editText,          setEditText]          = useState('');
-  const [editDescription,   setEditDescription]   = useState('');
-  const [editNotes,         setEditNotes]         = useState('');
-  const [editDueDate,       setEditDueDate]       = useState('');
-  const [editDueTime,       setEditDueTime]       = useState('09:00');
-  const [editPriority,      setEditPriority]      = useState('medium');
-  const [newSubtask,        setNewSubtask]        = useState('');
-  const [timeSpent,         setTimeSpent]         = useState(0);
-
-  useEffect(() => {
-    if (todo) {
-      setEditText(todo.text);
-      setEditDescription(todo.description || '');
-      setEditNotes(todo.notes || '');
-      setEditDueDate(todo.dueDate || '');
-      setEditDueTime(todo.dueTime || '09:00');
-      setEditPriority(todo.priority || 'medium');
-      setTimeSpent(todo.timeSpent || 0);
-    }
-  }, [todo]);
+  const [editMode, setEditMode] = useState(false);
+  const [editText, setEditText] = useState(todo?.text || '');
+  const [editDescription, setEditDescription] = useState(todo?.description || '');
+  const [editNotes, setEditNotes] = useState(todo?.notes || '');
+  const [editDueDate, setEditDueDate] = useState(todo?.dueDate || '');
+  const [editDueTime, setEditDueTime] = useState(todo?.dueTime || '09:00');
+  const [editPriority, setEditPriority] = useState(todo?.priority || 'medium');
+  const [newSubtask, setNewSubtask] = useState('');
+  const [timeSpent, setTimeSpent] = useState(todo?.timeSpent || 0);
 
   if (!todo) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f8f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', background: '#fff', padding: '3rem', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8f7ff 0%, #f0f9ff 100%)',
+        padding: '2rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          textAlign: 'center',
+          background: '#FFFFFF',
+          padding: '3rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07)',
+        }}>
           <h2 style={{ color: '#1F2937', marginBottom: '1rem' }}>Task not found</h2>
           <button
-            onClick={() => navigate('/todos')}
-            style={{ padding: '12px 24px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+            onClick={() => navigate('/')}
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              background: '#3B82F6',
+              color: '#FFFFFF',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+            }}
           >
             ← Back to List
           </button>
@@ -623,112 +746,210 @@ function TodoDetailPage({ todos, updateTodo, addActivity, toggleComplete }) {
     );
   }
 
-  const col          = getColor(todo.color);
-  const completedSub = (todo.subtasks || []).filter(s => s.completed).length;
-  const totalSub     = (todo.subtasks || []).length;
+  const colorObj = colors.find(c => c.name === todo.color) || colors[0];
+  const completedSubtasks = (todo.subtasks || []).filter(s => s.completed).length;
+  const totalSubtasks = (todo.subtasks || []).length;
 
   const saveEdits = () => {
     updateTodo(todo.id, {
-      text: editText, description: editDescription, notes: editNotes,
-      dueDate: editDueDate, dueTime: editDueTime, priority: editPriority,
+      text: editText,
+      description: editDescription,
+      notes: editNotes,
+      dueDate: editDueDate,
+      dueTime: editDueTime,
+      priority: editPriority,
     });
     addActivity(todo.id, 'edited', 'Task details updated');
     setEditMode(false);
   };
 
   const toggleSubtask = (subtaskId) => {
-    const sub = todo.subtasks.find(s => s.id === subtaskId);
-    const updated = todo.subtasks.map(s => s.id === subtaskId ? { ...s, completed: !s.completed } : s);
-    updateTodo(todo.id, { subtasks: updated });
-    addActivity(todo.id, sub.completed ? 'subtask_uncompleted' : 'subtask_completed', sub.text);
+    const updatedSubtasks = todo.subtasks.map(s =>
+      s.id === subtaskId ? { ...s, completed: !s.completed } : s
+    );
+    updateTodo(todo.id, { subtasks: updatedSubtasks });
+    const subtask = todo.subtasks.find(s => s.id === subtaskId);
+    addActivity(todo.id, 'subtask_' + (subtask.completed ? 'uncompleted' : 'completed'), subtask.text);
   };
 
-  const addSubtask = () => {
-    if (!newSubtask.trim()) return;
-    const updated = [...(todo.subtasks || []), { id: Date.now(), text: newSubtask.trim(), completed: false }];
-    updateTodo(todo.id, { subtasks: updated });
-    addActivity(todo.id, 'subtask_added', newSubtask);
-    setNewSubtask('');
+  const addSubtaskFn = () => {
+    if (newSubtask.trim()) {
+      const newSubtasks = [...(todo.subtasks || []), {
+        id: Date.now(),
+        text: newSubtask,
+        completed: false,
+      }];
+      updateTodo(todo.id, { subtasks: newSubtasks });
+      addActivity(todo.id, 'subtask_added', newSubtask);
+      setNewSubtask('');
+    }
   };
 
   const deleteSubtask = (subtaskId) => {
-    updateTodo(todo.id, { subtasks: todo.subtasks.filter(s => s.id !== subtaskId) });
+    const updatedSubtasks = todo.subtasks.filter(s => s.id !== subtaskId);
+    updateTodo(todo.id, { subtasks: updatedSubtasks });
   };
 
-  const handleTimeSpent = (val) => {
-    const n = Math.max(0, parseInt(val) || 0);
-    setTimeSpent(n);
-    updateTodo(todo.id, { timeSpent: n });
-    addActivity(todo.id, 'time_logged', `${n} minutes logged`);
+  const updateTimeSpent = (newTime) => {
+    setTimeSpent(newTime);
+    updateTodo(todo.id, { timeSpent: newTime });
+    addActivity(todo.id, 'time_logged', `${newTime} minutes logged`);
   };
-
-  const priorityStyle = (p) =>
-    p === 'high'   ? { background: '#FEE2E2', color: '#DC2626' } :
-    p === 'medium' ? { background: '#FEF3C7', color: '#92400E' } :
-                     { background: '#F0FDF4', color: '#166534' };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#f8f7ff,#f0f9ff)', padding: '1rem' }}>
-
-      {/* Back */}
-      <div style={{ maxWidth: '700px', margin: '0 auto 1.5rem' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8f7ff 0%, #f0f9ff 100%)',
+      padding: '1rem',
+    }}>
+      {/* Header */}
+      <div style={{
+        maxWidth: '700px',
+        margin: '0 auto',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
         <button
-          onClick={() => navigate('/todos')}
+          onClick={() => navigate('/')}
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#3B82F6',
-            background: 'none', border: 'none', fontWeight: '600', cursor: 'pointer',
-            fontSize: '15px', padding: '8px 12px', borderRadius: '8px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#3B82F6',
+            textDecoration: 'none',
+            fontWeight: '600',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            transition: 'background 0.2s',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '16px',
           }}
         >
-          <ArrowLeft size={20} /> Back
+          <ArrowLeft size={20} />
+          Back
+        </button>
+        <button
+          onClick={onLogout}
+          style={{
+            padding: '8px 16px',
+            background: '#FEE2E2',
+            color: '#DC2626',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <LogOut size={16} />
+          Logout
         </button>
       </div>
 
+      {/* Main Content */}
       <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-
-        {/* ── Task Card ── */}
+        {/* Task Card */}
         <div style={{
-          background: col.light, borderLeft: `6px solid ${col.bg}`,
-          border: `1px solid ${col.bg}33`, borderRadius: '16px',
-          padding: '24px', marginBottom: '1.5rem',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          background: colorObj.light,
+          borderLeft: `6px solid ${colorObj.bg}`,
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '1.5rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+          border: `1px solid ${colorObj.bg}33`,
         }}>
-          {/* Title */}
+          {/* Task Title */}
           {editMode ? (
             <input
-              type="text" value={editText} onChange={e => setEditText(e.target.value)}
+              type="text"
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
               style={{
-                width: '100%', fontSize: '24px', fontWeight: '700', color: col.text,
-                border: `2px solid ${col.bg}`, borderRadius: '8px', padding: '12px',
-                marginBottom: '16px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                width: '100%',
+                fontSize: '24px',
+                fontWeight: '700',
+                color: colorObj.text,
+                border: `2px solid ${colorObj.bg}`,
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '16px',
+                fontFamily: 'inherit',
+                outline: 'none',
               }}
             />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: '700', color: col.text, margin: 0, flex: 1 }}>{todo.text}</h1>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '16px',
+            }}>
+              <h1 style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: colorObj.text,
+                margin: 0,
+                flex: 1,
+              }}>
+                {todo.text}
+              </h1>
               <button
-                onClick={() => setEditMode(true)}
+                onClick={() => {
+                  setEditMode(true);
+                  setEditText(todo.text);
+                  setEditDescription(todo.description);
+                  setEditNotes(todo.notes);
+                }}
                 style={{
-                  padding: '8px 16px', background: '#F3F4F6', border: `1px solid ${col.bg}`,
-                  borderRadius: '8px', color: col.text, cursor: 'pointer',
-                  fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px',
+                  background: '#F3F4F6',
+                  border: `1px solid ${colorObj.bg}`,
+                  borderRadius: '8px',
+                  color: colorObj.text,
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
               >
-                <Edit2 size={16} /> Edit
+                <Edit2 size={16} />
+                Edit
               </button>
             </div>
           )}
 
-          {/* Status + Priority */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Status and Priority */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            marginBottom: '16px',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}>
             <button
-              onClick={() => toggleComplete(todo.id)}
+              onClick={() => updateTodo(todo.id, { completed: !todo.completed })}
               style={{
                 padding: '8px 16px',
-                background: todo.completed ? col.bg : '#F3F4F6',
-                color: todo.completed ? '#fff' : col.text,
-                border: `1px solid ${col.bg}`, borderRadius: '8px', cursor: 'pointer',
-                fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px',
+                background: todo.completed ? colorObj.bg : '#F3F4F6',
+                color: todo.completed ? '#FFFFFF' : colorObj.text,
+                border: `1px solid ${colorObj.bg}`,
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
               }}
             >
               {todo.completed ? <CheckCircle2 size={16} /> : <Circle size={16} />}
@@ -737,10 +958,17 @@ function TodoDetailPage({ todos, updateTodo, addActivity, toggleComplete }) {
 
             {editMode ? (
               <select
-                value={editPriority} onChange={e => setEditPriority(e.target.value)}
+                value={editPriority}
+                onChange={(e) => setEditPriority(e.target.value)}
                 style={{
-                  padding: '8px 12px', border: `1px solid ${col.bg}`, borderRadius: '8px',
-                  color: col.text, fontWeight: '600', cursor: 'pointer', background: 'white', fontSize: '14px',
+                  padding: '8px 12px',
+                  border: `1px solid ${colorObj.bg}`,
+                  borderRadius: '8px',
+                  color: colorObj.text,
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  background: 'white',
+                  fontSize: '14px',
                 }}
               >
                 {priorities.map(p => (
@@ -749,193 +977,521 @@ function TodoDetailPage({ todos, updateTodo, addActivity, toggleComplete }) {
               </select>
             ) : (
               <span style={{
-                padding: '8px 16px', borderRadius: '8px',
-                fontWeight: '600', fontSize: '14px',
-                display: 'flex', alignItems: 'center', gap: '6px',
-                ...priorityStyle(todo.priority),
+                padding: '8px 16px',
+                background: editPriority === 'high' ? '#FEE2E2' : editPriority === 'medium' ? '#FEF3C7' : '#F0FDF4',
+                color: editPriority === 'high' ? '#DC2626' : editPriority === 'medium' ? '#92400E' : '#166534',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
               }}>
                 <Flag size={16} />
-                {(todo.priority || 'medium').charAt(0).toUpperCase() + (todo.priority || 'medium').slice(1)} Priority
+                {editPriority === 'high' ? 'High' : editPriority === 'medium' ? 'Medium' : 'Low'} Priority
               </span>
             )}
           </div>
 
           {/* Description */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: col.text, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: colorObj.text,
+              marginBottom: '6px',
+              textTransform: 'uppercase',
+            }}>
               Description
             </label>
             {editMode ? (
               <textarea
-                value={editDescription} onChange={e => setEditDescription(e.target.value)}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
                 style={{
-                  width: '100%', minHeight: '80px', padding: '12px',
-                  border: `1px solid ${col.bg}`, borderRadius: '8px', color: col.text,
-                  fontFamily: 'inherit', fontSize: '14px', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '12px',
+                  border: `1px solid ${colorObj.bg}`,
+                  borderRadius: '8px',
+                  color: colorObj.text,
+                  fontFamily: 'inherit',
+                  fontSize: '14px',
+                  outline: 'none',
+                  resize: 'vertical',
                 }}
               />
             ) : (
               <p style={{
-                margin: 0, padding: '12px', background: 'rgba(255,255,255,0.5)',
-                borderRadius: '8px', color: col.text, fontSize: '14px', lineHeight: '1.6',
+                margin: 0,
+                padding: '12px',
+                background: 'rgba(255,255,255,0.5)',
+                borderRadius: '8px',
+                color: colorObj.text,
+                fontSize: '14px',
+                lineHeight: '1.6',
               }}>
                 {todo.description || 'No description added'}
               </p>
             )}
           </div>
 
-          {/* Due Date + Time */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          {/* Due Date and Time */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '12px',
+            marginBottom: '16px',
+          }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: col.text, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Due Date</label>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: colorObj.text,
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+              }}>
+                Due Date
+              </label>
               {editMode ? (
                 <input
-                  type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', border: `1px solid ${col.bg}`, borderRadius: '8px', color: col.text, fontFamily: 'inherit', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                  type="date"
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: `1px solid ${colorObj.bg}`,
+                    borderRadius: '8px',
+                    color: colorObj.text,
+                    fontFamily: 'inherit',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
                 />
               ) : (
-                <p style={{ margin: 0, padding: '10px 12px', background: 'rgba(255,255,255,0.5)', borderRadius: '8px', color: col.text, fontSize: '14px' }}>
+                <p style={{
+                  margin: 0,
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.5)',
+                  borderRadius: '8px',
+                  color: colorObj.text,
+                  fontSize: '14px',
+                }}>
                   {editDueDate ? new Date(editDueDate).toLocaleDateString() : 'Not set'}
                 </p>
               )}
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: col.text, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time</label>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: colorObj.text,
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+              }}>
+                Time
+              </label>
               {editMode ? (
                 <input
-                  type="time" value={editDueTime} onChange={e => setEditDueTime(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', border: `1px solid ${col.bg}`, borderRadius: '8px', color: col.text, fontFamily: 'inherit', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                  type="time"
+                  value={editDueTime}
+                  onChange={(e) => setEditDueTime(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: `1px solid ${colorObj.bg}`,
+                    borderRadius: '8px',
+                    color: colorObj.text,
+                    fontFamily: 'inherit',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
                 />
               ) : (
-                <p style={{ margin: 0, padding: '10px 12px', background: 'rgba(255,255,255,0.5)', borderRadius: '8px', color: col.text, fontSize: '14px' }}>{editDueTime}</p>
+                <p style={{
+                  margin: 0,
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.5)',
+                  borderRadius: '8px',
+                  color: colorObj.text,
+                  fontSize: '14px',
+                }}>
+                  {editDueTime}
+                </p>
               )}
             </div>
           </div>
 
-          {/* Save / Cancel */}
+          {/* Save/Cancel Buttons */}
           {editMode && (
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={saveEdits} style={{ flex: 1, padding: '12px', background: col.bg, color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginBottom: '16px',
+            }}>
+              <button
+                onClick={saveEdits}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: colorObj.bg,
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
                 Save Changes
               </button>
-              <button onClick={() => setEditMode(false)} style={{ flex: 1, padding: '12px', background: '#E5E7EB', color: '#374151', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+              <button
+                onClick={() => setEditMode(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#E5E7EB',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
                 Cancel
               </button>
             </div>
           )}
         </div>
 
-        {/* ── Subtasks ── */}
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #E5E7EB' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1F2937', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle2 size={20} color={col.bg} />
-            Subtasks {totalSub > 0 && <span style={{ fontSize: '14px', color: '#6B7280' }}>({completedSub}/{totalSub})</span>}
+        {/* Subtasks Section */}
+        <div style={{
+          background: '#FFFFFF',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '1.5rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+          border: '1px solid #E5E7EB',
+        }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: '700',
+            color: '#1F2937',
+            margin: '0 0 16px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <CheckCircle2 size={20} style={{ color: colorObj.bg }} />
+            Subtasks {totalSubtasks > 0 && <span style={{ fontSize: '14px', color: '#6B7280' }}>({completedSubtasks}/{totalSubtasks})</span>}
           </h2>
 
-          {totalSub > 0 && (
-            <div style={{ width: '100%', height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
-              <div style={{ width: `${(completedSub / totalSub) * 100}%`, height: '100%', background: col.bg, transition: 'width 0.3s' }} />
+          {/* Progress Bar */}
+          {totalSubtasks > 0 && (
+            <div style={{
+              width: '100%',
+              height: '8px',
+              background: '#E5E7EB',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              marginBottom: '16px',
+            }}>
+              <div
+                style={{
+                  width: `${(completedSubtasks / totalSubtasks) * 100}%`,
+                  height: '100%',
+                  background: colorObj.bg,
+                  transition: 'width 0.3s',
+                }}
+              />
             </div>
           )}
 
+          {/* Subtask List */}
           <div style={{ marginBottom: '16px' }}>
-            {(todo.subtasks || []).map(sub => (
-              <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F9FAFB', borderRadius: '8px', marginBottom: '8px' }}>
-                <button onClick={() => toggleSubtask(sub.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: col.bg, padding: 0, flexShrink: 0 }}>
-                  {sub.completed ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+            {(todo.subtasks || []).map(subtask => (
+              <div
+                key={subtask.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px',
+                  background: '#F9FAFB',
+                  borderRadius: '8px',
+                  marginBottom: '8px',
+                }}
+              >
+                <button
+                  onClick={() => toggleSubtask(subtask.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: colorObj.bg,
+                    padding: 0,
+                  }}
+                >
+                  {subtask.completed ? <CheckCircle2 size={20} /> : <Circle size={20} />}
                 </button>
-                <span style={{ flex: 1, color: '#374151', fontSize: '14px', textDecoration: sub.completed ? 'line-through' : 'none', opacity: sub.completed ? 0.6 : 1 }}>
-                  {sub.text}
+                <span style={{
+                  flex: 1,
+                  color: '#374151',
+                  textDecoration: subtask.completed ? 'line-through' : 'none',
+                  opacity: subtask.completed ? 0.6 : 1,
+                }}>
+                  {subtask.text}
                 </span>
-                <button onClick={() => deleteSubtask(sub.id)} style={{ background: '#FEE2E2', border: 'none', color: '#DC2626', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                <button
+                  onClick={() => deleteSubtask(subtask.id)}
+                  style={{
+                    background: '#FEE2E2',
+                    border: 'none',
+                    color: '#DC2626',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
                   <Trash2 size={14} />
                 </button>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          {/* Add Subtask */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+          }}>
             <input
-              type="text" value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && addSubtask()}
+              type="text"
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addSubtaskFn()}
               placeholder="Add a subtask..."
-              style={{ flex: 1, padding: '10px 12px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontFamily: 'inherit',
+                outline: 'none',
+              }}
             />
-            <button onClick={addSubtask} style={{ padding: '10px 16px', background: col.bg, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={addSubtaskFn}
+              style={{
+                padding: '10px 16px',
+                background: colorObj.bg,
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
               <Plus size={16} />
             </button>
           </div>
         </div>
 
-        {/* ── Notes + Time Spent ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        {/* Notes and Time Tracking */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '1.5rem',
+          marginBottom: '1.5rem',
+        }}>
           {/* Notes */}
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #E5E7EB' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1F2937', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FileText size={18} color={col.bg} /> Notes
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+            border: '1px solid #E5E7EB',
+          }}>
+            <h3 style={{
+              fontSize: '16px',
+              fontWeight: '700',
+              color: '#1F2937',
+              margin: '0 0 12px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <FileText size={18} style={{ color: colorObj.bg }} />
+              Notes
             </h3>
             {editMode ? (
               <textarea
-                value={editNotes} onChange={e => setEditNotes(e.target.value)}
-                style={{ width: '100%', minHeight: '100px', padding: '10px 12px', border: `1px solid ${col.bg}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                style={{
+                  width: '100%',
+                  minHeight: '100px',
+                  padding: '10px 12px',
+                  border: `1px solid ${colorObj.bg}`,
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  resize: 'vertical',
+                }}
               />
             ) : (
-              <p style={{ margin: 0, padding: '10px 12px', background: '#F9FAFB', borderRadius: '8px', fontSize: '13px', color: '#6B7280', lineHeight: '1.5', minHeight: '80px' }}>
+              <p style={{
+                margin: 0,
+                padding: '10px 12px',
+                background: '#F9FAFB',
+                borderRadius: '8px',
+                fontSize: '13px',
+                color: '#6B7280',
+                lineHeight: '1.5',
+                minHeight: '80px',
+                display: 'flex',
+                alignItems: 'center',
+              }}>
                 {todo.notes || 'No notes added'}
               </p>
             )}
           </div>
 
-          {/* Time Spent */}
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #E5E7EB' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1F2937', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Clock size={18} color={col.bg} /> Time Spent
+          {/* Time Tracking */}
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+            border: '1px solid #E5E7EB',
+          }}>
+            <h3 style={{
+              fontSize: '16px',
+              fontWeight: '700',
+              color: '#1F2937',
+              margin: '0 0 12px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <Clock size={18} style={{ color: colorObj.bg }} />
+              Time Spent
             </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}>
               <input
-                type="number" value={timeSpent} min="0"
-                onChange={e => handleTimeSpent(e.target.value)}
-                style={{ flex: 1, padding: '10px 12px', border: `1px solid ${col.bg}`, borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+                type="number"
+                value={timeSpent}
+                onChange={(e) => updateTimeSpent(parseInt(e.target.value) || 0)}
+                min="0"
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  border: `1px solid ${colorObj.bg}`,
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                }}
               />
-              <span style={{ fontSize: '13px', color: '#6B7280' }}>min</span>
+              <span style={{
+                fontSize: '13px',
+                color: '#6B7280',
+                minWidth: '50px',
+              }}>
+                minutes
+              </span>
             </div>
-            <p style={{ margin: 0, padding: '10px 12px', background: '#F9FAFB', borderRadius: '8px', fontSize: '13px', color: '#6B7280' }}>
-              {Math.floor(timeSpent / 60)}h {timeSpent % 60}m total
+            <p style={{
+              margin: '12px 0 0 0',
+              padding: '10px 12px',
+              background: '#F9FAFB',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#6B7280',
+            }}>
+              {Math.floor(timeSpent / 60)}h {timeSpent % 60}m
             </p>
           </div>
         </div>
 
-        {/* ── Activity Log ── */}
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #E5E7EB' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1F2937', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <History size={18} color={col.bg} /> Activity
+        {/* Activity History */}
+        <div style={{
+          background: '#FFFFFF',
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '2rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+          border: '1px solid #E5E7EB',
+        }}>
+          <h3 style={{
+            fontSize: '16px',
+            fontWeight: '700',
+            color: '#1F2937',
+            margin: '0 0 16px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <History size={18} style={{ color: colorObj.bg }} />
+            Activity
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {(todo.activity || []).length === 0 ? (
-              <p style={{ color: '#9CA3AF', textAlign: 'center', margin: '16px 0', fontSize: '14px' }}>No activity yet</p>
-            ) : (
-              [...(todo.activity || [])].reverse().map(a => (
-                <div key={a.id} style={{ padding: '12px', background: '#F9FAFB', borderRadius: '8px', fontSize: '13px', borderLeft: `3px solid ${col.bg}` }}>
-                  <div style={{ fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
-                    {a.action === 'created'              && '✨ Task created'}
-                    {a.action === 'edited'               && '✏️ Task edited'}
-                    {a.action === 'completed'            && '✅ Marked complete'}
-                    {a.action === 'reopened'             && '🔄 Reopened'}
-                    {a.action === 'subtask_completed'    && '✓ Subtask completed'}
-                    {a.action === 'subtask_uncompleted'  && '○ Subtask uncompleted'}
-                    {a.action === 'subtask_added'        && '➕ Subtask added'}
-                    {a.action === 'time_logged'          && '⏱️ Time logged'}
-                    {a.details ? `: ${a.details}` : ''}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#9CA3AF' }}>
-                    {new Date(a.timestamp).toLocaleString()}
-                  </div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            {(todo.activity || []).slice().reverse().map((activity, idx) => (
+              <div
+                key={activity.id}
+                style={{
+                  padding: '12px',
+                  background: '#F9FAFB',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  color: '#6B7280',
+                  borderLeft: `3px solid ${colorObj.bg}`,
+                }}
+              >
+                <div style={{ fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                  {activity.action === 'created' && '✨ Task created'}
+                  {activity.action === 'edited' && '✏️ Task edited'}
+                  {activity.action === 'completed' && '✅ Marked complete'}
+                  {activity.action === 'reopened' && '🔄 Reopened'}
+                  {activity.action === 'subtask_completed' && '✓ Subtask completed'}
+                  {activity.action === 'subtask_uncompleted' && '○ Subtask uncompleted'}
+                  {activity.action === 'subtask_added' && '➕ Subtask added'}
+                  {activity.action === 'time_logged' && '⏱️ Time logged'}
+                  {activity.details && `: ${activity.details}`}
                 </div>
-              ))
+                <div style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                  {new Date(activity.timestamp).toLocaleString()}
+                </div>
+              </div>
+            ))}
+            {(!todo.activity || todo.activity.length === 0) && (
+              <p style={{ color: '#9CA3AF', textAlign: 'center', margin: '16px 0' }}>
+                No activity yet
+              </p>
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

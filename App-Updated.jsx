@@ -41,6 +41,8 @@ function App() {
           path="*"
           element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/" replace />}
         />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/analytics" element={<ProgressAnalyticsDashboard />} />
       </Routes>
     </Router>
   );

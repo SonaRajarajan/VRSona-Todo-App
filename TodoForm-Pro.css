@@ -113,7 +113,33 @@ input:focus {
   flex-direction: column;
   gap: 12px;
 }
+.todo-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 10px;
+  resize: vertical;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  margin-top: 5px;
+}
 
+.todo-textarea:focus {
+  border-color: #3b82f6;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #444;
+}
+
+input[type="date"],
+input[type="time"] {
+  cursor: pointer;
+}
 .section-label {
   font-weight: 600;
   color: #1F2937;

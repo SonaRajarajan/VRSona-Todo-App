@@ -2,15 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 
-function LoginPage() {
+function LoginPage({ onLogin }) {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    navigate('/todos');
-  };
   const validateForm = () => {
     const newErrors = {};
 
@@ -37,14 +34,22 @@ function LoginPage() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Show alert
       alert(Object.values(newErrors).join('\n'));
-    } else {
-      // Save to localStorage
-      localStorage.setItem('userData', JSON.stringify({ name, age }));
-      // Navigate to home
-      navigate('/todos'); 
+      return;
     }
+
+    const userData = { name: name.trim(), age };
+
+    // This is the missing piece: tell App.js the user is logged in.
+    // App.js sets isLoggedIn=true and user=userData, and persists both
+    // to localStorage via its own useEffect hooks.
+    if (onLogin) {
+      onLogin(userData);
+    }
+
+    // Send them to the dashboard. Since isLoggedIn is now true,
+    // ProtectedRoute will let them through instead of bouncing back to "/".
+    navigate('/dashboard');
   };
 
   return (
